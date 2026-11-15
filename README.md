@@ -65,7 +65,8 @@ d.data.original.to_csv('data/support2.csv', index=False)"
 | Diagnosis / comorbidity | `dzgroup`, `dzclass`, `num.co`, `diabetes`, `dementia`, `ca` |
 | Day-3 physiology | `meanbp`, `wblc`, `hrt`, `resp`, `temp`, `pafi`, `alb`, `bili`, `crea`, `sod`, `ph`, `glucose`, `bun`, `urine`, `scoma` |
 | Functional status | `adlp`, `adls`, `adlsc` |
-| Care context | `hday`, `avtisst`, `dnr`, `dnrday` |
+| Care context | `hday`, `dnr` (only "DNR before admission" is used) |
+| **Excluded (leakage)** | `death`, `d.time`, `slos`, `sfdm2`, `charges`, `totcst`, `totmcst`, `aps`, `sps`, `surv2m`, `surv6m`, `prg2m`, `prg6m`, `dnrday`, `avtisst` |
 
 ### Missing data (handled in preprocessing)
 | Column | Missing | Column | Missing |
@@ -84,21 +85,21 @@ d.data.original.to_csv('data/support2.csv', index=False)"
 .
 ├── data/
 │   └── support2.csv
-├── notebooks/         # EDA and model experiments
-├── src/               # train.py, predict.py
+├── notebook/
+│   └── notebook.ipynb     # course-style: data prep, EDA, feature importance, model selection & tuning
+├── src/
+│   └── preprocessing.py   # reproducible load / clean / split / impute functions
+├── requirements.txt
 └── README.md
 ```
 
 ## 4. How to run
-> Work in progress. The steps below will be completed as the project develops.
-
 ```bash
 git clone https://github.com/iofabela/ml-mortality-risk-prediction.git
 cd ml-mortality-risk-prediction
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv && source .venv/bin/activate   # or: uv venv --python 3.12
 pip install -r requirements.txt
 
-jupyter notebook notebooks/      # EDA + experiments
-python src/train.py              # train and save the final model
-python src/predict.py            # serve predictions
+jupyter notebook notebook.ipynb
 ```
+Coming next: `src/train.py` (train and save the final model) and `src/predict.py` (serve predictions).
