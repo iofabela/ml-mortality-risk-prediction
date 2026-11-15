@@ -1,14 +1,35 @@
 [project]
 name = "ml-mortality-risk-prediction"
 version = "0.1.0"
-description = "Add your description here"
+description = "Predicts in-hospital death risk from day-3 clinical data (SUPPORT2)"
 readme = "README.md"
 requires-python = ">=3.15"
-dependencies = []
+dependencies = [
+    "fastapi>=0.163.0",
+    "numpy>=2.5.4",
+    "pandas>=3.1.1",
+    "pydantic>=2.14.3",
+    "scalar-fastapi>=1.9.3",
+    "scikit-learn>=1.9.1",
+    "uvicorn[standard]>=0.54.0",
+    "xgboost>=3.4.1",
+]
 
 [project.scripts]
 ml-mortality-risk-prediction = "ml_mortality_risk_prediction:main"
+train = "ml_mortality_risk_prediction.train:main"
+predict = "ml_mortality_risk_prediction.predict:main"
+serve = "ml_mortality_risk_prediction.serve:main"
 
 [build-system]
 requires = ["uv_build>=0.13.5,<0.14.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.4.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.11.2",
+    "nbformat>=5.11.1",
+    "seaborn>=0.13.2",
+]

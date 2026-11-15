@@ -1,4 +1,4 @@
-# ml-mortality-risk-prediction
+# MidProject | Machine Learning for Mortality Risk Prediction
 
 Machine-learning model that predicts the **risk of in-hospital death** for critically ill adult patients, using clinical data collected around **day 3 of hospitalization** (SUPPORT2 dataset).
 
@@ -68,7 +68,7 @@ d.data.original.to_csv('data/support2.csv', index=False)"
 | Care context | `hday`, `dnr` (only "DNR before admission" is used) |
 | **Excluded (leakage)** | `death`, `d.time`, `slos`, `sfdm2`, `charges`, `totcst`, `totmcst`, `aps`, `sps`, `surv2m`, `surv6m`, `prg2m`, `prg6m`, `dnrday`, `avtisst` |
 
-### Missing data (handled in preprocessing)
+### Missing data
 | Column | Missing | Column | Missing |
 |---|---|---|---|
 | `adlp` | 62% | `adls` | 32% |
@@ -78,6 +78,12 @@ d.data.original.to_csv('data/support2.csv', index=False)"
 | `alb` | 37% | `edu` | 18% |
 | `income` | 33% | `wblc`, `crea`, `race`, `dnr` | < 3% |
 
+How it is handled (`src/ml_mortality_risk_prediction/features.py`, the same code for training and prediction):
+- **Lab values** (`alb`, `pafi`, `bili`, `crea`, `bun`, `wblc`, `urine`): filled with the normal values recommended by the SUPPORT authors, because a test that wasn't ordered was usually judged normal. A `*_missing` flag is added for `alb`, `pafi`, `bili`, `bun` and `urine`.
+- **`income`, `race`:** missing values become their own `unknown` category.
+- **Other numeric columns** (`edu`, `ph`, `glucose`, ...): filled with the median learned from the training data (saved in the model artifact).
+- **`adlp`, `adls`:** not used. `adlsc`, their imputed combination, is used instead.
+
 ---
 
 ## 3. Project structure
@@ -86,20 +92,90 @@ d.data.original.to_csv('data/support2.csv', index=False)"
 ├── data/
 │   └── support2.csv
 ├── notebook/
-│   └── notebook.ipynb     # course-style: data prep, EDA, feature importance, model selection & tuning
-├── src/
-│   └── preprocessing.py   # reproducible load / clean / split / impute functions
-├── requirements.txt
+│   └── notebook.ipynb            # data prep, EDA, feature importance, model selection & tuning
+├── models/
+│   └── model.bin                 # trained artifact (created by `uv run train`)
+├── src/ml_mortality_risk_prediction/
+│   ├── features.py               # cleaning shared by training and inference
+│   ├── train.py                  # trains the final model and saves the artifact
+│   ├── predict.py                # loads the model, runs inference
+│   └── serve.py                  # FastAPI web service (+ Scalar API reference)
+├── openapi.json                  # exported OpenAPI spec of the service
+├── pyproject.toml / uv.lock
 └── README.md
 ```
 
 ## 4. How to run
+
+Requirements: [uv](https://docs.astral.sh/uv/) (it installs Python 3.15 and every dependency).
+
 ```bash
 git clone https://github.com/iofabela/ml-mortality-risk-prediction.git
 cd ml-mortality-risk-prediction
-python -m venv .venv && source .venv/bin/activate   # or: uv venv --python 3.12
-pip install -r requirements.txt
-
-jupyter notebook notebook.ipynb
+uv sync                       # create .venv and install dependencies
 ```
-Coming next: `src/train.py` (train and save the final model) and `src/predict.py` (serve predictions).
+
+### Train the model
+```bash
+uv run train                  # writes models/model.bin
+```
+It trains the tuned XGBoost (`eta=0.05`, `max_depth=4`, `min_child_weight=30`, 301 rounds), picks the decision threshold on the validation set (recall ≥ 0.80), retrains on train + validation and reports the test scores:
+```
+validation  PR-AUC 0.645 | ROC AUC 0.822 | @0.20: precision 0.452, recall 0.814
+test        PR-AUC 0.624 | ROC AUC 0.813 | @0.20: precision 0.466, recall 0.797
+```
+
+### Predict from the command line
+```bash
+uv run predict                # scores a built-in example patient
+uv run predict patient.json   # scores a patient from a JSON file
+```
+
+### Run the web service
+```bash
+uv run serve                  # http://localhost:9696
+```
+
+| Endpoint | Description |
+|---|---|
+| `GET /health` | Simple `200 OK` check: `{"status": "ok"}` |
+| `POST /predict` | Accepts one patient as JSON and returns the prediction |
+| `GET /docs` | Interactive API reference ([Scalar](https://scalar.com)) |
+
+Example request (a real patient from the test set who died in hospital):
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"age": 59.81, "sex": "male", "dzgroup": "coma", "num_co": 3, "edu": 4,
+          "income": "under_$11k", "scoma": 26, "race": "hispanic", "hday": 21,
+          "diabetes": 1, "dementia": 0, "ca": "no", "dnr_before_adm": 0,
+          "meanbp": 105, "wblc": 20.1, "hrt": 114, "resp": 12, "temp": 40.59,
+          "pafi": 415, "alb": 4.3, "bili": 0.6, "crea": 2.0, "sod": 147, "ph": 7.64,
+          "glucose": 402, "bun": 56, "urine": 1350, "adlsc": 0}' \
+     http://localhost:9696/predict
+```
+Response:
+```json
+{"death_probability": 0.5602, "high_risk": true, "threshold": 0.2}
+```
+
+Only `age`, `sex`, `dzgroup` and `num_co` are required. Any lab value you leave out (or send as `null`) is filled the same way as in training: with the SUPPORT normal value plus a missing flag, or with the training median.
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"age": 45, "sex": "female", "dzgroup": "chf", "num_co": 1}' \
+     http://localhost:9696/predict
+# {"death_probability": 0.0151, "high_risk": false, "threshold": 0.2}
+```
+Invalid input (an unknown `dzgroup`, an out-of-range value, ...) returns `422` with the reason.
+
+### Scalar tooling
+- **API reference:** open http://localhost:9696/docs while the service is running.
+- **Scalar CLI:** validate the exported OpenAPI spec, or regenerate it after changing the API:
+  ```bash
+  curl -s http://localhost:9696/openapi.json > openapi.json
+  npx -y @scalar/cli@latest document validate openapi.json
+  ```
+
+### Notebook
+```bash
+uv run jupyter notebook notebook/notebook.ipynb
+```

@@ -12,3 +12,4 @@ __pycache__/
 # Any LLM settings
 .claude
 .agents
+.mcp.*
