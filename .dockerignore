@@ -1,0 +1,11 @@
+.git
+.venv
+.claude
+.agents
+.mcp.json
+__pycache__/
+*.pyc
+models/
+notebook/
+openapi.json
+.DS_Store

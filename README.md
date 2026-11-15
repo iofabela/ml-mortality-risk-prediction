@@ -101,6 +101,7 @@ How it is handled (`src/ml_mortality_risk_prediction/features.py`, the same code
 │   ├── predict.py                # loads the model, runs inference
 │   └── serve.py                  # FastAPI web service (+ Scalar API reference)
 ├── openapi.json                  # exported OpenAPI spec of the service
+├── Dockerfile / .dockerignore    # container image for the web service
 ├── pyproject.toml / uv.lock
 └── README.md
 ```
@@ -166,6 +167,23 @@ curl -X POST -H "Content-Type: application/json" \
 # {"death_probability": 0.0151, "high_risk": false, "threshold": 0.2}
 ```
 Invalid input (an unknown `dzgroup`, an out-of-range value, ...) returns `422` with the reason.
+
+### Run with Docker
+The build has two stages. The first installs the locked dependencies (CPU only, without xgboost's GPU library) and trains the model. The final image keeps only the virtual environment, the code and `models/model.bin` (~180 MB compressed, ~730 MB on disk).
+```bash
+docker build -t mortality-risk .
+docker run -it --rm -p 9696:9696 mortality-risk
+```
+The service is then available at http://localhost:9696. The `curl` examples above work unchanged:
+```bash
+curl http://localhost:9696/health
+# {"status":"ok"}
+```
+Clean up when you are done (`--rm` already removes the container):
+```bash
+docker rmi mortality-risk          # delete the image
+docker builder prune -f            # optional: delete ALL build cache (for every project)
+```
 
 ### Scalar tooling
 - **API reference:** open http://localhost:9696/docs while the service is running.
