@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mortality risk prediction architecture</title>
+  <!-- Font source: system (no Google Fonts) so the exported SVG renders the same on GitHub. -->
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --color-paper:  #2d3142;
+      --color-ink:    #f5f5f5;
+      --color-muted:  #bfc0c0;
+      --font-sans:    'Geist', system-ui, sans-serif;
+      --font-serif:   'Instrument Serif', 'Noto Serif', serif;
+      --font-mono:    'Geist Mono', ui-monospace, monospace;
+    }
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 3rem 2rem;
+    }
+    .frame { max-width: 1200px; width: 100%; }
+    .diagram-container { width: 100%; overflow-x: auto; }
+    .eyebrow {
+      font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--color-muted); margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif); font-size: clamp(1.5rem, 2.4vw + 0.75rem, 2rem);
+      font-weight: 400; letter-spacing: -0.02em; line-height: 1.15;
+      color: var(--color-ink); margin-bottom: 1.5rem;
+    }
+    svg { width: 100%; min-width: 960px; display: block; }
+    @media print {
+      .diagram-container { overflow-x: visible; }
+      svg { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Architecture · Diagram Design</p>
+    <h1>Mortality risk prediction: data → model → API</h1>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="architecture-title architecture-desc">
+        <title id="architecture-title">Mortality risk prediction: data → model → API</title>
+        <desc id="architecture-desc">The SUPPORT2 CSV is cleaned by features.py and used by train.py, with parameters tuned in the notebook, to produce model.bin; inside a Docker image on Google Cloud Run, serve.py receives client requests and calls predict.py, which loads model.bin and returns the death risk.</desc>
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bfc0c0"/></marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f08a59"/></marker>
+          <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#739fdf"/></marker>
+        </defs>
+
+        <rect width="100%" height="100%" fill="#2d3142"/>
+
+        <!-- Title -->
+        <text x="32" y="44" fill="#f5f5f5" font-size="24" font-family="'Instrument Serif', 'Noto Serif', serif">Mortality risk prediction: data → model → API</text>
+
+        <!-- ===== Zones ===== -->
+        <rect x="32" y="72" width="896" height="232" rx="8" fill="rgba(245,245,245,0.02)" stroke="rgba(245,245,245,0.10)" stroke-width="0.8"/>
+        <rect x="44" y="76" width="132" height="12" rx="2" fill="#2d3142"/>
+        <text x="110" y="85" fill="#949eb2" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">TRAINING · OFFLINE</text>
+
+        <rect x="480" y="352" width="448" height="144" rx="8" fill="rgba(245,245,245,0.02)" stroke="rgba(245,245,245,0.10)" stroke-width="0.8"/>
+        <rect x="492" y="356" width="220" height="12" rx="2" fill="#2d3142"/>
+        <text x="602" y="365" fill="#949eb2" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.14em">DOCKER IMAGE · GOOGLE CLOUD RUN</text>
+
+        <!-- ===== Arrows (drawn before nodes) ===== -->
+        <!-- training pipeline -->
+        <line x1="232" y1="144" x2="278" y2="144" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="456" y1="144" x2="502" y2="144" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <line x1="680" y1="144" x2="726" y2="144" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- notebook -> train.py (optional / offline input) -->
+        <line x1="592" y1="216" x2="592" y2="186" stroke="#bfc0c0" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <rect x="600" y="194" width="80" height="12" rx="2" fill="#2d3142"/>
+        <text x="640" y="203" fill="#949eb2" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">TUNED PARAMS</text>
+        <!-- model.bin -> predict.py -->
+        <line x1="816" y1="184" x2="816" y2="382" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <rect x="824" y="316" width="88" height="12" rx="2" fill="#2d3142"/>
+        <text x="868" y="325" fill="#949eb2" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">LOAD ON START</text>
+        <!-- serve.py -> predict.py -->
+        <line x1="680" y1="424" x2="726" y2="424" stroke="#bfc0c0" stroke-width="1.2" marker-end="url(#arrow)"/>
+        <!-- client -> serve.py (HTTP request) -->
+        <line x1="408" y1="412" x2="502" y2="412" stroke="#739fdf" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <rect x="412" y="392" width="88" height="12" rx="2" fill="#2d3142"/>
+        <text x="456" y="401" fill="#739fdf" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">POST /PREDICT</text>
+        <!-- serve.py -> client (response) -->
+        <line x1="504" y1="440" x2="410" y2="440" stroke="#739fdf" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow-link)"/>
+        <rect x="424" y="448" width="64" height="12" rx="2" fill="#2d3142"/>
+        <text x="456" y="457" fill="#739fdf" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.06em">RISK JSON</text>
+
+        <!-- ===== Nodes ===== -->
+        <!-- support2.csv (input) -->
+        <rect x="56" y="104" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="56" y="104" width="176" height="80" rx="6" fill="rgba(191,192,192,0.10)" stroke="#949eb2" stroke-width="1"/>
+        <rect x="64" y="110" width="36" height="12" rx="2" fill="transparent" stroke="rgba(148,158,178,0.60)" stroke-width="0.8"/>
+        <text x="82" y="119" fill="#949eb2" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">DATA</text>
+        <text x="144" y="148" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">support2.csv</text>
+        <text x="144" y="166" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">9,105 patients</text>
+
+        <!-- features.py (backend) -->
+        <rect x="280" y="104" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="280" y="104" width="176" height="80" rx="6" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <rect x="288" y="110" width="36" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="306" y="119" fill="rgba(245,245,245,0.80)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CODE</text>
+        <text x="368" y="148" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">features.py</text>
+        <text x="368" y="166" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">clean · impute · flags</text>
+
+        <!-- train.py (backend) -->
+        <rect x="504" y="104" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="504" y="104" width="176" height="80" rx="6" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <rect x="512" y="110" width="40" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="532" y="119" fill="rgba(245,245,245,0.80)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">TRAIN</text>
+        <text x="592" y="148" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">train.py</text>
+        <text x="592" y="166" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">XGBoost · 301 rounds</text>
+
+        <!-- model.bin (focal store) -->
+        <rect x="728" y="104" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="728" y="104" width="176" height="80" rx="6" fill="rgba(240,138,89,0.10)" stroke="#f08a59" stroke-width="1.2"/>
+        <rect x="736" y="110" width="40" height="12" rx="2" fill="transparent" stroke="rgba(240,138,89,0.60)" stroke-width="0.8"/>
+        <text x="756" y="119" fill="#f08a59" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">STORE</text>
+        <text x="816" y="148" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">models/model.bin</text>
+        <text x="816" y="166" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">model + threshold</text>
+
+        <!-- notebook (optional) -->
+        <rect x="504" y="216" width="176" height="64" rx="6" fill="#2d3142"/>
+        <rect x="504" y="216" width="176" height="64" rx="6" fill="rgba(245,245,245,0.02)" stroke="rgba(245,245,245,0.45)" stroke-width="1" stroke-dasharray="4,3"/>
+        <text x="592" y="244" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">notebook.ipynb</text>
+        <text x="592" y="262" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">EDA · model selection</text>
+
+        <!-- Client (external) -->
+        <rect x="232" y="384" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="232" y="384" width="176" height="80" rx="6" fill="rgba(245,245,245,0.03)" stroke="rgba(245,245,245,0.45)" stroke-width="1"/>
+        <rect x="240" y="390" width="36" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="258" y="399" fill="rgba(245,245,245,0.80)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">USER</text>
+        <text x="320" y="428" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">Client</text>
+        <text x="320" y="446" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">curl · Scalar /docs</text>
+
+        <!-- serve.py (focal API) -->
+        <rect x="504" y="384" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="504" y="384" width="176" height="80" rx="6" fill="rgba(240,138,89,0.10)" stroke="#f08a59" stroke-width="1.2"/>
+        <rect x="512" y="390" width="28" height="12" rx="2" fill="transparent" stroke="rgba(240,138,89,0.60)" stroke-width="0.8"/>
+        <text x="526" y="399" fill="#f08a59" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">API</text>
+        <text x="592" y="428" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">serve.py · FastAPI</text>
+        <text x="592" y="446" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">/predict /health /docs</text>
+
+        <!-- predict.py (backend) -->
+        <rect x="728" y="384" width="176" height="80" rx="6" fill="#2d3142"/>
+        <rect x="728" y="384" width="176" height="80" rx="6" fill="#393e53" stroke="#f5f5f5" stroke-width="1"/>
+        <rect x="736" y="390" width="36" height="12" rx="2" fill="transparent" stroke="rgba(245,245,245,0.40)" stroke-width="0.8"/>
+        <text x="754" y="399" fill="rgba(245,245,245,0.80)" font-size="8" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle" letter-spacing="0.08em">CODE</text>
+        <text x="816" y="428" fill="#f5f5f5" font-size="14" font-weight="600" font-family="'Geist', system-ui, sans-serif" text-anchor="middle">predict.py</text>
+        <text x="816" y="446" fill="#bfc0c0" font-size="11" font-family="'Geist Mono', ui-monospace, monospace" text-anchor="middle">load model · score</text>
+
+        <!-- ===== Legend ===== -->
+        <line x1="32" y1="528" x2="928" y2="528" stroke="rgba(245,245,245,0.10)" stroke-width="0.8"/>
+        <text x="32" y="556" fill="#bfc0c0" font-size="9" font-family="'Geist Mono', ui-monospace, monospace" letter-spacing="0.14em">LEGEND</text>
+        <rect x="112" y="546" width="20" height="12" rx="2" fill="rgba(240,138,89,0.10)" stroke="#f08a59" stroke-width="1"/>
+        <text x="140" y="556" fill="#bfc0c0" font-size="11" font-family="'Geist', system-ui, sans-serif">Model artifact / API</text>
+        <line x1="288" y1="552" x2="318" y2="552" stroke="#739fdf" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+        <text x="328" y="556" fill="#bfc0c0" font-size="11" font-family="'Geist', system-ui, sans-serif">HTTP request</text>
+        <line x1="432" y1="552" x2="462" y2="552" stroke="#bfc0c0" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+        <text x="472" y="556" fill="#bfc0c0" font-size="11" font-family="'Geist', system-ui, sans-serif">Offline input / response</text>
+        <rect x="632" y="546" width="20" height="12" rx="2" fill="rgba(245,245,245,0.02)" stroke="rgba(245,245,245,0.25)" stroke-width="0.8"/>
+        <text x="660" y="556" fill="#bfc0c0" font-size="11" font-family="'Geist', system-ui, sans-serif">Runtime boundary</text>
+      </svg>
+    </div>
+  </div>
+</body>
+</html>

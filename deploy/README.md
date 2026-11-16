@@ -164,9 +164,7 @@ gcloud storage ls                                         # no buckets
 ```
 To remove everything, including the project itself and its budget, run `gcloud projects delete <PROJECT_ID>`. Then confirm the cost under *Billing → Reports* in the console.
 
-> If you interrupt a deploy with Ctrl+C, the build keeps running on Cloud Build. Run `teardown` afterwards anyway, as shown below.
-
-![An interrupted deploy followed by teardown](../images/07-deploy-teardown-terminal.png)
+> If you interrupt a deploy with Ctrl+C, the build keeps running on Cloud Build. Run `teardown` afterwards anyway.
 
 ---
 
