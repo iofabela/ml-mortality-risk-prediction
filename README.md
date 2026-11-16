@@ -102,6 +102,11 @@ How it is handled (`src/ml_mortality_risk_prediction/features.py`, the same code
 │   └── serve.py                  # FastAPI web service (+ Scalar API reference)
 ├── openapi.json                  # exported OpenAPI spec of the service
 ├── Dockerfile / .dockerignore    # container image for the web service
+├── deploy/
+│   ├── cloud-run.sh              # setup / deploy / test / teardown on Google Cloud Run
+│   └── README.md                 # cloud deployment guide with screenshots
+├── images/                       # screenshots of the cloud deployment
+├── .gcloudignore                 # files uploaded to Cloud Build
 ├── pyproject.toml / uv.lock
 └── README.md
 ```
@@ -196,4 +201,35 @@ docker builder prune -f            # optional: delete ALL build cache (for every
 ### Notebook
 ```bash
 uv run jupyter notebook notebook/notebook.ipynb
+```
+
+---
+
+## 5. Cloud deployment (Google Cloud Run)
+
+The service was deployed to **[Google Cloud Run](https://cloud.google.com/run)** and tested live, then torn down to avoid costs. Cloud Build builds the same `Dockerfile` (including model training), and Cloud Run serves it on a public HTTPS URL that scales to zero when idle.
+
+**Full step-by-step guide, cost breakdown and screenshots: [`deploy/README.md`](deploy/README.md)**
+
+### Results
+| Check | Result |
+|---|---|
+| URL (while deployed) | `https://mortality-risk-439308398066.us-central1.run.app` |
+| `GET /health` | `{"status":"ok"}`, 200 OK in ~115 ms |
+| `POST /predict` (example patient) | `{"death_probability":0.5602,"high_risk":true,"threshold":0.2}`, the same as locally |
+| Model trained in Cloud Build | test PR-AUC 0.624, ROC AUC 0.813 (same as locally) |
+| Image in Artifact Registry | 186 MB |
+| Cost | **$0** (free tier); everything deleted afterwards |
+
+![Live prediction from Cloud Run](images/01-curl-health-predict.png)
+
+![Scalar API reference on Cloud Run: POST /predict](images/05-scalar-predict-test.png)
+
+### Quick reference
+```bash
+gcloud config set billing/quota_project <PROJECT_ID>   # avoids 429 errors on gcloud's shared quota
+BUDGET=1USD deploy/cloud-run.sh setup    # APIs, IAM, budget alert (use your account currency, e.g. 20MXN)
+deploy/cloud-run.sh deploy               # build + deploy (~4 min)
+deploy/cloud-run.sh test                 # /health and /predict on the live URL
+deploy/cloud-run.sh teardown             # delete service, images and source bucket
 ```
